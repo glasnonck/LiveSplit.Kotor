@@ -28,8 +28,8 @@ namespace LiveSplit.Kotor
 
         public GameMemory()
         {
-            _isNotLoadSavePtr = new DeepPointer(0x3A3A38); // == 1 if (not saving or loading) && swkotor is the active window
-            _isActiveWindowPtr = new DeepPointer("dinput8.dll", 0x2C1D4); // == 1 if swkotor is the active window
+            _isActiveWindowPtr = new DeepPointer(0x3A3A38); // == 1 if swkotor is the active window
+            _isNotLoadSavePtr = new DeepPointer("dinput8.dll", 0x2C1D4); // == 1 if (not saving or loading) && swkotor is the active window
 
             _ignorePIDs = new List<int>();
         }
