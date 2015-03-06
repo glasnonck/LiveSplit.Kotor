@@ -18,8 +18,8 @@ namespace LiveSplit.Kotor
         private SynchronizationContext _uiThread;
         private List<int> _ignorePIDs;
 
-        private DeepPointer _isNotLoadSavePtr;
-        private DeepPointer _isActiveWindowPtr;
+        private DeepPointer _isNotLoadSavePtr; // == 1 if swkotor is the active window
+        private DeepPointer _isActiveWindowPtr; // == 1 if (not saving or loading) && swkotor is the active window
 
         // private enum ExpectedDllSizes
         // {
@@ -28,8 +28,28 @@ namespace LiveSplit.Kotor
 
         public GameMemory()
         {
-            _isActiveWindowPtr = new DeepPointer(0x3A3A38); // == 1 if swkotor is the active window
-            _isNotLoadSavePtr = new DeepPointer("dinput8.dll", 0x2C1D4); // == 1 if (not saving or loading) && swkotor is the active window
+            switch (Environment.OSVersion.Version.Minor)
+            {
+                case 0: // "Vista/Win2008Server"
+                case 1: // "Win7/Win2008Server R2"
+                    _isActiveWindowPtr = new DeepPointer(0x3A3A38);
+                    _isNotLoadSavePtr = new DeepPointer("dinput8.dll", 0x2C1D4);
+                    break;
+
+                case 2: // "Win8/Win2012Server"
+                case 3: // "Win8.1/Win2012Server R2"
+                    _isActiveWindowPtr = new DeepPointer(0x3A3A38);
+                    _isNotLoadSavePtr = new DeepPointer("dinput8.dll", 0x2C1D4);
+                    break;
+
+                default: // assume the same as "Vista/Win2008Server" and "Win7/Win2008Server R2"
+                    _isActiveWindowPtr = new DeepPointer(0x3A3A38);
+                    _isNotLoadSavePtr = new DeepPointer("dinput8.dll", 0x2C1D4);
+                    break;
+            }
+
+            // _isActiveWindowPtr = new DeepPointer(0x3A3A38); // == 1 if swkotor is the active window
+            // _isNotLoadSavePtr = new DeepPointer("dinput8.dll", 0x2C1D4); // == 1 if (not saving or loading) && swkotor is the active window
 
             _ignorePIDs = new List<int>();
         }
@@ -136,6 +156,8 @@ namespace LiveSplit.Kotor
                         }
                         else
                         {
+                            loadSaveStarted = false;
+
                             // unpause game timer
                             _uiThread.Post(d =>
                             {
@@ -156,6 +178,22 @@ namespace LiveSplit.Kotor
                             return;
                         }
                     }
+
+                    // Once the game has exited, unpause the game timer if necessary
+                    if (loadSaveStarted)
+                    {
+                        loadSaveStarted = false;
+
+                        // unpause game timer
+                        _uiThread.Post(d =>
+                        {
+                            if (this.OnLoadFinished != null)
+                            {
+                                this.OnLoadFinished(this, EventArgs.Empty);
+                            }
+                        }, null);
+                    }
+
                 }
                 catch (Exception ex)
                 {
